@@ -5,6 +5,7 @@ import { toast } from "sonner";
 interface Floor {
   number: number;
   visited: boolean;
+  exploring: boolean;
 }
 
 const Index = () => {
@@ -17,15 +18,16 @@ const Index = () => {
   // Initialize floors
   useEffect(() => {
     const initialFloors = Array.from({ length: maxFloors }, (_, i) => ({
-      number: i + 1,
+      number: maxFloors - i, // Reverse the floor numbers
       visited: false,
+      exploring: false,
     }));
     setFloors(initialFloors);
   }, []);
 
   // DFS implementation
   const getNextUnvisitedFloor = useCallback((currentFloor: number, floors: Floor[]) => {
-    // In DFS, we look for the next unvisited floor below current position
+    // Look for next unvisited floor below current position
     for (let i = currentFloor + 1; i <= maxFloors; i++) {
       if (!floors.find(f => f.number === i)?.visited) {
         return i;
@@ -45,37 +47,50 @@ const Index = () => {
     const nextFloor = getNextUnvisitedFloor(currentStack[currentStack.length - 1], currentFloors);
     
     if (nextFloor) {
-      // Push to stack and mark as visited
+      // Push to stack and mark as exploring
       currentStack.push(nextFloor);
       const updatedFloors = currentFloors.map(floor => 
-        floor.number === nextFloor ? { ...floor, visited: true } : floor
+        floor.number === nextFloor 
+          ? { ...floor, exploring: true }
+          : floor
       );
       
       setStack(currentStack);
       setFloors(updatedFloors);
       setCurrentFloor(nextFloor);
       
-      toast.success(`Exploring Floor ${nextFloor}!`, {
+      toast.info(`Exploring Floor ${nextFloor}!`, {
         duration: 1500,
+        className: "bg-indigo-600/90 text-white",
       });
     } else {
-      // Backtrack if no unvisited floors remain below
+      // Backtrack and mark current floor as visited
       if (currentStack.length > 1) {
-        currentStack.pop();
+        const floorToMark = currentStack.pop();
         const previousFloor = currentStack[currentStack.length - 1];
+        
+        const updatedFloors = currentFloors.map(floor => 
+          floor.number === floorToMark 
+            ? { ...floor, visited: true, exploring: false }
+            : floor
+        );
+        
         setStack(currentStack);
+        setFloors(updatedFloors);
         setCurrentFloor(previousFloor);
         
-        toast.info(`Backtracking to Floor ${previousFloor}...`, {
+        toast.success(`Floor ${floorToMark} conquered! Backtracking to Floor ${previousFloor}...`, {
           duration: 1500,
+          className: "bg-emerald-600/90 text-white",
         });
       } else {
         // All floors visited
         toast.success("Adventure Complete! Returning to start...", {
           duration: 2000,
+          className: "bg-purple-600/90 text-white",
         });
         setStack([1]);
-        setFloors(floors.map(floor => ({ ...floor, visited: false })));
+        setFloors(floors.map(floor => ({ ...floor, visited: false, exploring: false })));
         setCurrentFloor(1);
       }
     }
@@ -85,14 +100,16 @@ const Index = () => {
   };
 
   const getFloorColor = (floor: Floor) => {
-    if (floor.number === currentFloor) return "bg-blue-500/30 border-blue-500/50";
-    if (floor.visited) return "bg-green-500/20 border-green-500/40";
+    if (floor.number === currentFloor) return "bg-indigo-500/30 border-indigo-500/50";
+    if (floor.visited) return "bg-emerald-500/20 border-emerald-500/40";
+    if (floor.exploring) return "bg-amber-500/20 border-amber-500/40";
     return "bg-white/5 border-white/20";
   };
 
   const getFloorAnimation = (floor: Floor) => {
     if (floor.number === currentFloor) return "animate-pulse";
     if (floor.visited) return "animate-floor-conquer";
+    if (floor.exploring) return "animate-exploring";
     return "";
   };
 
@@ -100,7 +117,7 @@ const Index = () => {
     <div className="min-h-screen p-8 flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 via-purple-900 to-gray-900">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2 mb-8">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
             DFS Adventure
           </h1>
           <p className="text-gray-300">Watch Adventurer X explore the depths</p>
@@ -114,7 +131,7 @@ const Index = () => {
                 glass-floor rounded-lg p-4 floor-transition
                 ${getFloorColor(floor)}
                 ${getFloorAnimation(floor)}
-                hover:shadow-lg hover:shadow-blue-500/20
+                hover:shadow-lg hover:shadow-indigo-500/20
                 transform transition-all duration-300
                 ${floor.number === currentFloor ? 'scale-105 z-10' : 'hover:scale-102'}
               `}
@@ -125,14 +142,14 @@ const Index = () => {
                 </span>
                 {floor.number === currentFloor && (
                   <PersonStanding 
-                    className={`w-6 h-6 text-blue-400 
+                    className={`w-6 h-6 text-indigo-400 
                       ${isJumping ? "animate-adventurer-jump" : ""}
-                      filter drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]
+                      filter drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]
                     `}
                   />
                 )}
                 {floor.visited && floor.number !== currentFloor && (
-                  <CheckCircle className="w-5 h-5 text-green-400 animate-floor-conquer" />
+                  <CheckCircle className="w-5 h-5 text-emerald-400 animate-floor-conquer" />
                 )}
               </div>
             </div>
@@ -145,8 +162,8 @@ const Index = () => {
           className={`
             w-full mt-6 px-6 py-3 rounded-lg text-white font-medium
             transition-all duration-300 ease-in-out
-            bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600
-            hover:from-blue-600 hover:via-purple-600 hover:to-blue-700
+            bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600
+            hover:from-indigo-600 hover:via-purple-600 hover:to-indigo-700
             disabled:from-gray-500 disabled:to-gray-600
             disabled:cursor-not-allowed
             transform hover:scale-105 active:scale-95
