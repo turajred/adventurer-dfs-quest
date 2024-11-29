@@ -12,13 +12,14 @@ const Index = () => {
   const [currentFloor, setCurrentFloor] = useState(1);
   const [floors, setFloors] = useState<Floor[]>([]);
   const [isJumping, setIsJumping] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
   const [stack, setStack] = useState<number[]>([1]); // DFS stack starting from floor 1
   const maxFloors = 10;
 
   // Initialize floors
   useEffect(() => {
     const initialFloors = Array.from({ length: maxFloors }, (_, i) => ({
-      number: maxFloors - i, // Reverse the floor numbers
+      number: i + 1, // Floor 1 at top, Floor 10 at bottom
       visited: false,
       exploring: false,
     }));
@@ -84,14 +85,20 @@ const Index = () => {
           className: "bg-emerald-600/90 text-white",
         });
       } else {
-        // All floors visited
+        // All floors visited - restart animation
+        setIsRestarting(true);
         toast.success("Adventure Complete! Returning to start...", {
           duration: 2000,
           className: "bg-purple-600/90 text-white",
         });
-        setStack([1]);
-        setFloors(floors.map(floor => ({ ...floor, visited: false, exploring: false })));
-        setCurrentFloor(1);
+        
+        // Reset after animation
+        setTimeout(() => {
+          setStack([1]);
+          setFloors(floors.map(floor => ({ ...floor, visited: false, exploring: false })));
+          setCurrentFloor(1);
+          setIsRestarting(false);
+        }, 1500);
       }
     }
 
@@ -107,6 +114,7 @@ const Index = () => {
   };
 
   const getFloorAnimation = (floor: Floor) => {
+    if (isRestarting && floor.number === 1) return "animate-restart";
     if (floor.number === currentFloor) return "animate-pulse";
     if (floor.visited) return "animate-floor-conquer";
     if (floor.exploring) return "animate-exploring";
